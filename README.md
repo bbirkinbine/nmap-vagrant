@@ -2,6 +2,6 @@ Just a quick way for me to 'vagrant up' the dev version of nmap - https://github
 
 Requires:
 
-virtualbox
-vagrant
-ansible
+* virtualbox
+* vagrant
+* ansible
