@@ -1,0 +1,74 @@
+---
+- name: initial provision
+  hosts: all
+  sudo: no
+  tasks:
+
+    - name: "yum install packages"
+      sudo: yes
+      yum: name="{{ item }}" state=present
+      with_items:
+        - ntp
+        - acpid
+        - git
+
+    # uncomment below if you want to run yum update
+    #- name: "yum update"
+    #  sudo: yes
+    #  yum: name=* state=latest
+
+    - name: "set timezone UTC"
+      sudo: yes
+      command: /usr/bin/timedatectl set-timezone UTC
+
+    - name: "enable services"
+      sudo: yes
+      service: name="{{ item }}" state=running enabled=yes
+      with_items:
+        - ntpd
+        - acpid
+
+    - name: "timedatectl use ntp"
+      sudo: yes
+      command: /usr/bin/timedatectl set-ntp true
+
+    - name: "create bin directory"
+      file: path=~/bin state=directory
+
+    - name: "create dist directory"
+      file: path=~/dist state=directory
+
+    - name: "yum install packages for nmap"
+      sudo: yes
+      yum: name="{{ item }}" state=present
+      with_items:
+        - openssl-devel
+        - gcc-c++
+        - autoconf
+
+    - name: "grab nmap repo"
+      git: repo=https://github.com/nmap/nmap.git dest=~/dist/nmap
+
+    - name: "configure nmap"
+      command: ./configure --prefix=$HOME/bin/nmap
+      args:
+        chdir: ~/dist/nmap
+        creates: ~/bin/nmap/Makefile
+
+    - name: "compile nmap"
+      command: make
+      args:
+        chdir: ~/dist/nmap
+        creates: ~/dist/nmap/nmap
+
+    - name: "install nmap"
+      command: make install
+      args:
+        chdir: ~/dist/nmap
+        creates: ~/bin/nmap/bin/nmap
+
+    - name: "add nmap to PATH"
+      lineinfile: dest=~/.bashrc line="export PATH=$PATH:~/bin/nmap/bin/"
+
+    - name: "add nnmap to MANPATH"
+      lineinfile: dest=~/.bashrc line="export MANPATH=$MANPATH:~/bin/nmap/share/man/"
